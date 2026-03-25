@@ -167,14 +167,14 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap justify-center">
-                <!-- PWA Install Button (mobile only, shown when installable) -->
+                <!-- PWA Install Button (always visible on mobile) -->
                 <button id="pwa-install-btn"
-                    class="hidden items-center gap-1.5 py-2 px-3 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-lg shadow-md transition-all active:scale-95"
+                    class="flex md:hidden items-center gap-1.5 py-2 px-3 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-lg shadow-md transition-all active:scale-95"
                     title="Cài ứng dụng về điện thoại">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Cài App
                 </button>
-                <div id="pwa-install-divider" class="hidden w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                <div class="flex md:hidden w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
                 <!-- Lot Size Calculator Button -->
                 <button id="open-calc-btn"
                     class="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 transition-colors"
@@ -803,6 +803,42 @@
         </div>
     </div>
 
+    <!-- PWA Install Guide Modal -->
+    <div id="pwa-guide-modal" class="fixed inset-0 bg-gray-900/80 z-[9999] hidden flex items-end justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Cài App lên điện thoại</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Thực hiện trên Chrome Android</p>
+                </div>
+            </div>
+            <div class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                <div class="flex items-start gap-3">
+                    <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+                    <p>Nhấn biểu tượng <strong>3 chấm (⋮)</strong> ở góc trên bên phải Chrome</p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+                    <p>Chọn <strong>"Thêm vào màn hình chính"</strong> hoặc <strong>"Cài đặt ứng dụng"</strong></p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+                    <p>Nhấn <strong>"Thêm"</strong> để xác nhận — icon app sẽ xuất hiện trên màn hình chính</p>
+                </div>
+                <div class="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                    <p class="text-xs text-yellow-700 dark:text-yellow-400">💡 Nếu không thấy tuỳ chọn này, app cần chạy qua HTTPS (deploy lên Firebase Hosting).</p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('pwa-guide-modal').classList.add('hidden')"
+                class="mt-5 w-full py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold rounded-lg transition">
+                Đã hiểu
+            </button>
+        </div>
+    </div>
+
     <!-- JavaScript Module -->
     <script type="module">
         import { initializeApp } from "firebase/app";
@@ -814,47 +850,31 @@
         // ==========================================
         let deferredInstallPrompt = null;
         const pwaInstallBtn = document.getElementById('pwa-install-btn');
-        const pwaInstallDivider = document.getElementById('pwa-install-divider');
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredInstallPrompt = e;
-            if (pwaInstallBtn) {
-                pwaInstallBtn.classList.remove('hidden');
-                pwaInstallBtn.classList.add('flex');
-            }
-            if (pwaInstallDivider) {
-                pwaInstallDivider.classList.remove('hidden');
-                pwaInstallDivider.classList.add('block');
-            }
         });
 
         if (pwaInstallBtn) {
             pwaInstallBtn.addEventListener('click', async () => {
-                if (!deferredInstallPrompt) return;
-                deferredInstallPrompt.prompt();
-                const { outcome } = await deferredInstallPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    pwaInstallBtn.classList.add('hidden');
-                    pwaInstallBtn.classList.remove('flex');
-                    if (pwaInstallDivider) {
-                        pwaInstallDivider.classList.add('hidden');
-                        pwaInstallDivider.classList.remove('block');
+                if (deferredInstallPrompt) {
+                    // Native PWA install (HTTPS)
+                    deferredInstallPrompt.prompt();
+                    const { outcome } = await deferredInstallPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        pwaInstallBtn.style.display = 'none';
                     }
+                    deferredInstallPrompt = null;
+                } else {
+                    // Fallback: show manual guide modal
+                    document.getElementById('pwa-guide-modal').classList.remove('hidden');
                 }
-                deferredInstallPrompt = null;
             });
         }
 
         window.addEventListener('appinstalled', () => {
-            if (pwaInstallBtn) {
-                pwaInstallBtn.classList.add('hidden');
-                pwaInstallBtn.classList.remove('flex');
-            }
-            if (pwaInstallDivider) {
-                pwaInstallDivider.classList.add('hidden');
-                pwaInstallDivider.classList.remove('block');
-            }
+            if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
             deferredInstallPrompt = null;
         });
 
