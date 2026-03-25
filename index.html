@@ -167,6 +167,14 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap justify-center">
+                <!-- PWA Install Button (mobile only, shown when installable) -->
+                <button id="pwa-install-btn"
+                    class="hidden items-center gap-1.5 py-2 px-3 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-lg shadow-md transition-all active:scale-95"
+                    title="Cài ứng dụng về điện thoại">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Cài App
+                </button>
+                <div id="pwa-install-divider" class="hidden w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
                 <!-- Lot Size Calculator Button -->
                 <button id="open-calc-btn"
                     class="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 transition-colors"
@@ -800,6 +808,55 @@
         import { initializeApp } from "firebase/app";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
         import { getFirestore, collection, doc, setDoc, updateDoc, addDoc, query, orderBy, onSnapshot, deleteDoc, serverTimestamp, getDocs, where } from "firebase/firestore";
+
+        // ==========================================
+        // 0. PWA INSTALL PROMPT
+        // ==========================================
+        let deferredInstallPrompt = null;
+        const pwaInstallBtn = document.getElementById('pwa-install-btn');
+        const pwaInstallDivider = document.getElementById('pwa-install-divider');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            if (pwaInstallBtn) {
+                pwaInstallBtn.classList.remove('hidden');
+                pwaInstallBtn.classList.add('flex');
+            }
+            if (pwaInstallDivider) {
+                pwaInstallDivider.classList.remove('hidden');
+                pwaInstallDivider.classList.add('block');
+            }
+        });
+
+        if (pwaInstallBtn) {
+            pwaInstallBtn.addEventListener('click', async () => {
+                if (!deferredInstallPrompt) return;
+                deferredInstallPrompt.prompt();
+                const { outcome } = await deferredInstallPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    pwaInstallBtn.classList.add('hidden');
+                    pwaInstallBtn.classList.remove('flex');
+                    if (pwaInstallDivider) {
+                        pwaInstallDivider.classList.add('hidden');
+                        pwaInstallDivider.classList.remove('block');
+                    }
+                }
+                deferredInstallPrompt = null;
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            if (pwaInstallBtn) {
+                pwaInstallBtn.classList.add('hidden');
+                pwaInstallBtn.classList.remove('flex');
+            }
+            if (pwaInstallDivider) {
+                pwaInstallDivider.classList.add('hidden');
+                pwaInstallDivider.classList.remove('block');
+            }
+            deferredInstallPrompt = null;
+        });
 
         // ==========================================
         // 1. GLOBAL VARIABLES & STATE
