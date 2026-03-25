@@ -1,0 +1,27 @@
+{
+  "name": "trading",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hoanghuy1kt-oss/TRADING.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hoanghuy1kt-oss/TRADING/issues"
+  },
+  "homepage": "https://github.com/hoanghuy1kt-oss/TRADING#readme",
+  "dependencies": {
+    "firebase": "^12.11.0",
+    "vite": "^8.0.2"
+  }
+}

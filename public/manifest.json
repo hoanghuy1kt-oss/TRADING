@@ -1,0 +1,17 @@
+{
+  "name": "Trading Pro",
+  "short_name": "Trading Pro",
+  "description": "Nhật ký giao dịch cá nhân",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#1e40af",
+  "icons": [
+    {
+      "src": "/Logo.ico",
+      "sizes": "192x192 512x512",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ]
+}

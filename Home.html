@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], } } }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f7f9fb;
+            transition: background-color 0.3s ease;
+        }
+
+        html.dark body {
+            background-color: #0f172a;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 4px;
+        }
+
+        html.dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 4px;
+        }
+
+        .card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .input-style {
+            transition: all 0.2s;
+            border-color: #cbd5e1;
+        }
+
+        html.dark .input-style {
+            background-color: #1e293b;
+            border-color: #334155;
+            color: #f8fafc;
+        }
+
+        .input-style:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 1px #3b82f6;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 4px;
+        }
+
+        .day-header {
+            text-align: center;
+            font-weight: 600;
+            padding: 8px 0;
+        }
+
+        html.dark .day-header {
+            color: #cbd5e1;
+        }
+
+        .day-cell {
+            min-height: 80px;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background-color: #f8fafc;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        html.dark .day-cell {
+            border-color: #334155;
+            background-color: #1e293b;
+            color: #cbd5e1;
+        }
+
+        .day-cell:hover {
+            background-color: #eff6ff;
+        }
+
+        html.dark .day-cell:hover {
+            background-color: #334155;
+        }
+
+        #discipline-reminder-text strong {
+            font-weight: 700;
+            color: #d97706;
+        }
+
+        html.dark #discipline-reminder-text strong {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+
+<body class="text-gray-900 dark:text-gray-100">
+    <div id="app" class="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
+
+        <!-- Header -->
+        <header
+            class="mb-6 p-4 bg-white dark:bg-gray-800 rounded-xl card flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex flex-col items-start gap-2">
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
+                    Trading Pro
+                    <span id="user-rank"
+                        class="text-xs font-bold px-2 py-1 rounded bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm">Tân
+                        Binh</span>
+                </h1>
+
+                <!-- Account Switcher -->
+                <div
+                    class="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-300" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <select id="account-switcher"
+                        class="bg-transparent border-none text-sm font-semibold text-blue-600 dark:text-blue-400 focus:ring-0 cursor-pointer pr-6 py-0 appearance-none outline-none">
+                        <option value="default">Tài khoản chính</option>
+                    </select>
+                    <div class="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-1"></div>
+                    <button id="open-new-account-btn"
+                        class="text-gray-500 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                        title="Thêm tài khoản mới">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+
+                <p class="text-xs text-gray-500 dark:text-gray-400" id="auth-status">Đang tải...</p>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap justify-center">
+                <!-- Lot Size Calculator Button -->
+                <button id="open-calc-btn"
+                    class="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 transition-colors"
+                    title="Máy tính Khối lượng">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                </button>
+                <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                <button id="theme-toggle"
+                    class="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    <svg id="moon-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                        </path>
+                    </svg>
+                    <svg id="sun-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+                        </path>
+                    </svg>
+                </button>
+                <button id="open-fund-modal-btn"
+                    class="py-2 px-3 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm transition">Vốn</button>
+                <button id="open-settings-btn"
+                    class="py-2 px-3 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-md shadow-sm transition">Cài
+                    Đặt</button>
+            </div>
+        </header>
+
+        <div id="loading-spinner" class="flex justify-center items-center h-40">
+            <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+            </svg>
+            <span class="text-lg text-gray-600 dark:text-gray-300">Đang đồng bộ dữ liệu...</span>
+        </div>
+
+        <main id="main-content" class="hidden space-y-6">
+            <!-- Analytics Dashboard -->
+            <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                <!-- Metrics Left -->
+                <div class="xl:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-xl card flex flex-col h-full">
+                    <h2
+                        class="text-lg font-semibold mb-4 text-gray-800 dark:text-white border-b dark:border-gray-700 pb-2">
+                        Tổng Quan Tài Khoản</h2>
+
+                    <div class="mb-4 flex flex-col items-center justify-center text-center">
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Số Dư Hiện Tại</div>
+                        <div class="text-4xl font-extrabold text-gray-900 dark:text-white mb-2" id="current-balance">
+                            $0.00</div>
+                        <div id="return-percentage"
+                            class="text-sm font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-600">0.00%</div>
+                    </div>
+
+                    <div
+                        class="mb-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-600 dark:text-gray-400">P&L Đã đóng</span>
+                        <span class="text-xl font-bold" id="total-pnl">$0.00</span>
+                    </div>
+
+                    <!-- Enhanced Metrics Grid -->
+                    <div class="grid grid-cols-2 gap-y-4 gap-x-2 flex-grow content-start">
+                        <div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1">Winrate</div>
+                            <div class="text-base font-bold text-gray-800 dark:text-gray-200" id="win-rate">0.0%</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1">Profit Factor</div>
+                            <div class="text-base font-bold text-purple-600 dark:text-purple-400" id="profit-factor">
+                                0.00</div>
+                        </div>
+
+                        <div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1">Avg Win</div>
+                            <div class="text-base font-bold text-green-600" id="avg-win">$0</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1">Avg Loss</div>
+                            <div class="text-base font-bold text-red-600" id="avg-loss">$0</div>
+                        </div>
+
+                        <div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1">Kỳ Vọng
+                                (Expectancy)</div>
+                            <div class="text-base font-bold text-blue-600 dark:text-blue-400" id="expectancy">$0</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1">Chuỗi Thắng</div>
+                            <div class="text-base font-bold text-orange-500" id="win-streak">0 W</div>
+                        </div>
+
+                        <div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1">Tổng Lệnh</div>
+                            <div class="text-base font-bold text-gray-800 dark:text-gray-200" id="total-trades">0</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1">Max Drawdown</div>
+                            <div class="text-base font-bold text-red-500 dark:text-red-400" id="max-drawdown">-$0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts & Tags Right -->
+                <div class="xl:col-span-3 space-y-6 flex flex-col">
+                    <!-- Equity Curve -->
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-xl card">
+                        <h2 class="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Biểu Đồ Tăng Trưởng (Equity
+                            Curve)</h2>
+                        <div class="relative h-64 w-full"><canvas id="equityChart"></canvas></div>
+                    </div>
+
+                    <!-- Analytics Bottom Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Daily Notes -->
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl card flex flex-col">
+                            <h2 class="text-base font-semibold mb-2 text-gray-800 dark:text-white flex justify-between">
+                                Nhật ký Ngày <input type="date" id="daily-note-date"
+                                    class="text-sm border-b dark:border-gray-600 bg-transparent outline-none dark:text-gray-300 w-28">
+                            </h2>
+                            <textarea id="daily-note-content"
+                                class="w-full flex-grow p-2 text-sm border rounded input-style resize-none"
+                                placeholder="Ghi chú vĩ mô, nhận định thị trường..."></textarea>
+                            <button id="save-note-btn"
+                                class="mt-2 w-full py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded transition">Lưu
+                                Ghi Chú</button>
+                        </div>
+
+                        <!-- Tag Analytics: Setup -->
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl card">
+                            <h2
+                                class="text-base font-semibold mb-3 text-gray-800 dark:text-white border-b dark:border-gray-700 pb-1">
+                                Hiệu suất Setup (Top 3)</h2>
+                            <div id="setup-stats-container" class="space-y-3 text-sm">
+                                <!-- Populated by JS -->
+                                <p class="text-gray-500 dark:text-gray-400 text-xs">Chưa có dữ liệu</p>
+                            </div>
+                        </div>
+
+                        <!-- Tag Analytics: Emotion -->
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl card">
+                            <h2
+                                class="text-base font-semibold mb-3 text-gray-800 dark:text-white border-b dark:border-gray-700 pb-1">
+                                Tâm lý (Lợi nhuận/Thua lỗ)</h2>
+                            <div id="emotion-stats-container" class="space-y-3 text-sm">
+                                <!-- Populated by JS -->
+                                <p class="text-gray-500 dark:text-gray-400 text-xs">Chưa có dữ liệu</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Psychology & Discipline -->
+            <div class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-4 rounded-xl card">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-500 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.332 16c-.77 1.333.192 3 1.732 3z">
+                            </path>
+                        </svg>
+                        <p class="font-bold text-lg text-yellow-800 dark:text-yellow-400">Kỷ Luật Giao Dịch</p>
+                    </div>
+                    <div class="text-sm font-medium dark:text-gray-300">
+                        Lệnh h.nay: <span id="today-trades" class="text-blue-600 dark:text-blue-400">0/0</span> |
+                        Thua h.nay: <span id="today-losses" class="text-red-600 dark:text-red-400">0/0</span>
+                    </div>
+                </div>
+                <p id="discipline-reminder-text" class="mt-2 text-yellow-700 dark:text-yellow-300/80 text-sm">...</p>
+            </div>
+
+            <!-- Trade Entry Form -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl card">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Nhập Lệnh Mới</h2>
+
+                <div id="limit-message"
+                    class="hidden bg-red-100 dark:bg-red-900/40 border border-red-400 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4">
+                    <p class="font-bold">Đã đạt giới hạn giao dịch hàng ngày!</p>
+                    <p class="text-sm">Hãy tắt máy và nghỉ ngơi. Thị trường luôn ở đó vào ngày mai.</p>
+                </div>
+
+                <form id="trade-form" class="space-y-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ngày
+                                Mở</label><input type="date" id="trade-date" required
+                                class="mt-1 block w-full rounded-md p-2 input-style"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Giờ
+                                Mở</label><input type="time" id="open-time" required
+                                class="mt-1 block w-full rounded-md p-2 input-style"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Mã
+                                (Asset)</label><select id="trade-asset" required
+                                class="mt-1 block w-full rounded-md p-2 input-style"></select></div>
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Trạng Thái
+                                Lệnh</label><select id="trade-state" required
+                                class="mt-1 block w-full rounded-md p-2 input-style">
+                                <option value="Open">Open (Đang chạy)</option>
+                                <option value="Closed">Closed (Đã đóng)</option>
+                            </select></div>
+                    </div>
+
+                    <div id="main-closed-fields"
+                        class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Giờ
+                                Đóng</label><input type="time" id="close-time"
+                                class="mt-1 block w-full rounded-md p-2 input-style"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">PnL
+                                (USD)</label><input type="number" id="trade-pnl" step="0.01"
+                                placeholder="Ví dụ: 10.5 hoặc -5" class="mt-1 block w-full rounded-md p-2 input-style">
+                        </div>
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Kết
+                                Quả</label><select id="trade-result"
+                                class="mt-1 block w-full rounded-md p-2 input-style">
+                                <option value="">N/A</option>
+                                <option value="TP">TP (Thắng)</option>
+                                <option value="SL">SL (Thua)</option>
+                                <option value="BE">BE (Hòa)</option>
+                            </select></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Setup / Mô
+                                hình</label><input type="text" id="trade-setup" placeholder="VD: Breakout, Pinbar..."
+                                class="mt-1 block w-full rounded-md p-2 input-style"></div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cảm xúc / Tâm
+                                lý</label>
+                            <select id="trade-emotion"
+                                class="mt-1 block w-full rounded-md p-2 input-style bg-white dark:bg-gray-800">
+                                <option value="">-- Chọn trạng thái cảm xúc --</option>
+                                <option value="🤖 Kỷ luật">🤖 Tuân thủ kỷ luật 100%</option>
+                                <option value="😎 Tự tin">😎 Tự tin, phân tích rõ ràng</option>
+                                <option value="🤔 Phân vân">🤔 Phân vân, không chắc chắn</option>
+                                <option value="😨 FOMO">😨 FOMO (Sợ lỡ cơ hội)</option>
+                                <option value="😡 Trả thù">😡 Trả thù thị trường</option>
+                                <option value="😭 Hoảng loạn">😭 Hoảng loạn / Sợ hãi</option>
+                                <option value="😴 Mệt mỏi">😴 Mệt mỏi / Thiếu tập trung</option>
+                                <option value="🤩 Hưng phấn">🤩 Hưng phấn / Lạc quan quá mức</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">URL Hình Ảnh
+                                Setup (Tùy chọn)</label><input type="url" id="image-url"
+                                placeholder="Dán link ảnh chart setup"
+                                class="mt-1 block w-full rounded-md p-2 input-style"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phân tích & Lý do
+                                (Bắt buộc)</label><textarea id="trade-reason" rows="2" required
+                                placeholder="Phân tích, hỗ trợ/kháng cự, v.v."
+                                class="mt-1 block w-full rounded-md p-2 input-style"></textarea></div>
+                    </div>
+
+                    <!-- Checklist -->
+                    <div id="checklist-container"
+                        class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                        <p class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">Checklist trước khi vào
+                            lệnh:</p>
+                        <div class="flex flex-col sm:flex-row gap-4 text-sm text-gray-700 dark:text-gray-300">
+                            <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox"
+                                    class="trade-checklist form-checkbox h-4 w-4 text-blue-600 rounded"><span>Đúng xu
+                                    hướng/Setup</span></label>
+                            <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox"
+                                    class="trade-checklist form-checkbox h-4 w-4 text-blue-600 rounded"><span>R:R hợp lý
+                                    (>= 1:2)</span></label>
+                            <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox"
+                                    class="trade-checklist form-checkbox h-4 w-4 text-blue-600 rounded"><span>Chấp nhận
+                                    rủi ro (SL)</span></label>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submit-trade-btn"
+                        class="w-full py-3 px-4 rounded-md shadow-md text-lg font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        disabled>Phải tick đủ Checklist để thêm lệnh</button>
+                </form>
+            </div>
+
+            <!-- Calendar & Pie Chart Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-700 dark:text-white">Lịch Hiệu Suất</h2>
+                        <div class="flex items-center space-x-4">
+                            <button id="prev-month-btn"
+                                class="text-gray-500 hover:text-blue-600 font-bold">&lt;</button>
+                            <h3 id="current-month-display"
+                                class="text-md font-bold text-gray-800 dark:text-gray-200 w-24 text-center">...</h3>
+                            <button id="next-month-btn"
+                                class="text-gray-500 hover:text-blue-600 font-bold">&gt;</button>
+                        </div>
+                    </div>
+                    <div id="calendar-view" class="calendar-grid"></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl card flex flex-col items-center justify-center">
+                    <h2 class="text-md font-semibold mb-2 text-gray-700 dark:text-white self-start w-full">Tỷ lệ Lệnh
+                        theo Asset</h2>
+                    <div class="relative w-full max-w-[200px] aspect-square"><canvas id="assetPieChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Trade History -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700 dark:text-white">Lịch Sử Giao Dịch</h2>
+                    <div class="flex space-x-2">
+                        <button id="export-csv-btn"
+                            class="text-xs py-1 px-3 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded font-medium transition">Xuất
+                            CSV</button>
+                        <label for="import-csv-file"
+                            class="text-xs py-1 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded font-medium transition cursor-pointer">Nhập
+                            CSV</label>
+                        <input type="file" id="import-csv-file" accept=".csv" class="hidden">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4 text-sm" id="filter-controls">
+                    <input type="date" id="filter-date" class="rounded p-1.5 border input-style">
+                    <select id="filter-asset" class="rounded p-1.5 border input-style">
+                        <option value="">Tất Cả Mã</option>
+                    </select>
+                    <select id="filter-state" class="rounded p-1.5 border input-style">
+                        <option value="">Mọi Trạng Thái</option>
+                        <option value="Open">Open</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                    <select id="filter-result" class="rounded p-1.5 border input-style">
+                        <option value="">Mọi Kết Quả</option>
+                        <option value="TP">Win (TP)</option>
+                        <option value="SL">Loss (SL)</option>
+                        <option value="BE">Hòa (BE)</option>
+                    </select>
+                    <button id="clear-filters-btn"
+                        class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">Bỏ
+                        Lọc</button>
+                </div>
+                <div
+                    class="overflow-x-auto max-h-[500px] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 relative">
+                        <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th
+                                    class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                    Ngày/Giờ</th>
+                                <th
+                                    class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                    Mã</th>
+                                <th
+                                    class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                    Trạng Thái</th>
+                                <th
+                                    class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                    Hình Ảnh</th>
+                                <th
+                                    class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                    P&L (USD)</th>
+                                <th
+                                    class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                    Kết Quả</th>
+                                <th
+                                    class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase hidden md:table-cell">
+                                    Setup / Cảm xúc</th>
+                                <th
+                                    class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                    Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trade-table-body"
+                            class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                    </table>
+                </div>
+                <div id="no-trades-message" class="hidden text-center py-8 text-gray-500 dark:text-gray-400">Trống.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Calculator Modal -->
+    <div id="calc-modal" class="fixed inset-0 bg-gray-900/75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <div class="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-2">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">Tính Khối Lượng (Lot Size)</h2><button
+                    id="close-calc-btn"
+                    class="text-gray-500 hover:text-gray-800 dark:hover:text-white p-1">&times;</button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div><label class="block text-gray-600 dark:text-gray-300">Vốn Tài khoản ($)</label><input type="number"
+                        id="calc-balance" class="w-full mt-1 p-2 border rounded input-style bg-gray-50" readonly></div>
+                <div><label class="block text-gray-600 dark:text-gray-300">Rủi ro (%)</label><input type="number"
+                        id="calc-risk-pct" step="0.1" value="1" class="w-full mt-1 p-2 border rounded input-style">
+                </div>
+                <div class="bg-red-50 dark:bg-red-900/20 p-2 rounded"><span class="text-gray-600 dark:text-gray-300">Rủi
+                        ro tiền ($): </span><span id="calc-risk-usd"
+                        class="font-bold text-red-600 dark:text-red-400">0.00</span></div>
+                <div><label class="block text-gray-600 dark:text-gray-300">Khoảng cách Stop Loss
+                        (Pips/Points)</label><input type="number" id="calc-sl" step="1"
+                        class="w-full mt-1 p-2 border rounded input-style"></div>
+                <div><label class="block text-gray-600 dark:text-gray-300">Giá trị 1 Pip/Point của 1 Lot
+                        ($)</label><input type="number" id="calc-pip-val" step="0.1" value="10"
+                        title="Vàng thường là $1, Forex thường là $10"
+                        class="w-full mt-1 p-2 border rounded input-style"></div>
+                <div class="pt-4 border-t dark:border-gray-700 text-center">
+                    <span class="block text-gray-500 dark:text-gray-400 mb-1">Khối lượng cần vào (Lots)</span>
+                    <span id="calc-result" class="text-3xl font-extrabold text-blue-600 dark:text-blue-400">0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thêm/Sửa Tài khoản Modal -->
+    <div id="account-modal" class="fixed inset-0 bg-gray-900/75 z-50 hidden flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+            <h2 class="text-xl font-bold mb-4 dark:text-white">Thêm Tài Khoản Mới</h2>
+            <form id="account-form" class="space-y-4">
+                <div><label class="block text-sm dark:text-gray-300">Tên Tài Khoản (VD: Quỹ MFF, Tài khoản
+                        tay...)</label><input type="text" id="new-account-name" required
+                        class="w-full mt-1 p-2 border rounded input-style"></div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" id="close-account-btn"
+                        class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300">Hủy</button>
+                    <button type="submit" class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Tạo
+                        mới</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-gray-900/75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Cài Đặt (Tài khoản này)</h2><button
+                    id="close-settings-btn" class="text-gray-500 hover:text-gray-800 p-1"><svg class="w-6 h-6"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg></button>
+            </div>
+            <form id="settings-form" class="space-y-3">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-sm dark:text-gray-300">Lệnh Max/Ngày</label><input type="number"
+                            id="max-trades" class="w-full mt-1 p-2 border rounded input-style" value="5"></div>
+                    <div><label class="block text-sm dark:text-gray-300">Lệnh Thua Max/Ngày</label><input type="number"
+                            id="max-losses" class="w-full mt-1 p-2 border rounded input-style" value="2"></div>
+                </div>
+                <div><label class="block text-sm dark:text-gray-300">Tài sản (cách nhau dấu phẩy)</label><input
+                        type="text" id="asset-list" class="w-full mt-1 p-2 border rounded input-style"></div>
+                <div><label class="block text-sm dark:text-gray-300">Câu thần chú Kỷ Luật</label><textarea
+                        id="discipline-message-input" rows="2"
+                        class="w-full mt-1 p-2 border rounded input-style"></textarea></div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Lưu Cài
+                        Đặt</button>
+                </div>
+                <button type="button" id="open-reset-confirm-btn"
+                    class="w-full py-2 mt-2 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded text-sm">Xóa
+                    Dữ Liệu Tài Khoản Này (Reset)</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm Modals -->
+    <div id="reset-confirm-modal" class="fixed inset-0 bg-gray-900/75 z-50 hidden flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 mx-4 max-w-sm w-full">
+            <h3 class="text-xl font-bold text-red-600 mb-2">Reset Ứng Dụng?</h3>
+            <p class="dark:text-gray-300 mb-4 text-sm">Xóa sạch lệnh, ghi chú và vốn **CỦA TÀI KHOẢN NÀY**. Không thể
+                hoàn tác.</p>
+            <div class="flex justify-end gap-2"><button id="cancel-reset-btn"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded dark:text-white">Hủy</button><button
+                    id="confirm-reset-btn" class="px-4 py-2 bg-red-600 text-white rounded">Xóa Sạch</button></div>
+        </div>
+    </div>
+
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-gray-900/75 z-50 hidden flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 mx-4 max-w-sm w-full">
+            <h3 class="text-lg font-bold mb-2 dark:text-white">Xác Nhận Xóa</h3>
+            <p class="dark:text-gray-300 mb-4 text-sm">Bạn có chắc chắn muốn xóa mục này không?</p>
+            <div class="flex justify-end gap-2"><button id="cancel-delete-btn"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded dark:text-white">Hủy</button><button
+                    id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded">Xóa</button></div>
+        </div>
+    </div>
+
+    <!-- Fund Management Modal -->
+    <div id="fund-modal" class="fixed inset-0 bg-gray-900/75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold dark:text-white">Quản Lý Tiền Nạp & Rút</h2><button
+                    id="close-fund-modal-btn"
+                    class="text-gray-500 dark:text-gray-300 text-xl font-bold">&times;</button>
+            </div>
+            <form id="fund-form"
+                class="space-y-4 mb-6 p-4 border dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900/50">
+                <div class="grid grid-cols-3 gap-2">
+                    <select id="fund-type" required class="p-2 border rounded input-style">
+                        <option value="Deposit">Nạp Tiền</option>
+                        <option value="Withdrawal">Rút Tiền</option>
+                    </select>
+                    <input type="number" id="fund-amount" required min="0.01" step="0.01" placeholder="$ Số tiền"
+                        class="p-2 border rounded input-style">
+                    <input type="date" id="fund-date" required class="p-2 border rounded input-style">
+                </div>
+                <button type="submit"
+                    class="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Lưu</button>
+            </form>
+            <h3 class="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-300">Lịch Sử</h3>
+            <div class="overflow-y-auto max-h-80">
+                <table class="min-w-full text-sm dark:text-gray-300">
+                    <thead class="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Ngày</th>
+                            <th class="px-4 py-2 text-left">Loại</th>
+                            <th class="px-4 py-2 text-right">Số Tiền</th>
+                            <th class="px-4 py-2 text-right">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fund-table-body" class="divide-y dark:divide-gray-700"></tbody>
+                </table>
+                <div id="no-fund-message" class="hidden text-center py-4 text-gray-500">Trống</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Trade Modal -->
+    <div id="edit-trade-modal" class="fixed inset-0 bg-gray-900/75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-bold mb-4 dark:text-white">Sửa Lệnh</h2>
+            <form id="edit-trade-form" class="space-y-3">
+                <input type="hidden" id="edit-trade-id">
+                <div class="grid grid-cols-3 gap-2 text-sm">
+                    <input type="date" id="edit-open-date" class="p-2 border rounded input-style">
+                    <input type="time" id="edit-open-time" class="p-2 border rounded input-style">
+                    <select id="edit-asset" class="p-2 border rounded input-style"></select>
+                </div>
+                <div><select id="edit-state" class="w-full p-2 border rounded input-style bg-white">
+                        <option value="Open">Open</option>
+                        <option value="Closed">Closed</option>
+                    </select></div>
+                <div id="edit-closed-fields"
+                    class="hidden grid grid-cols-3 gap-2 text-sm p-2 bg-gray-50 dark:bg-gray-900/50 rounded">
+                    <input type="time" id="edit-close-time" class="p-2 border rounded input-style">
+                    <input type="number" id="edit-pnl" step="0.01" placeholder="PnL"
+                        class="p-2 border rounded input-style">
+                    <select id="edit-result" class="p-2 border rounded input-style">
+                        <option value="">KQ</option>
+                        <option value="TP">TP</option>
+                        <option value="SL">SL</option>
+                        <option value="BE">BE</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <input type="text" id="edit-setup" placeholder="Setup" class="p-2 border rounded input-style">
+                    <select id="edit-emotion" class="p-2 border rounded input-style bg-white dark:bg-gray-800">
+                        <option value="">-- Cảm xúc --</option>
+                        <option value="🤖 Kỷ luật">🤖 Kỷ luật</option>
+                        <option value="😎 Tự tin">😎 Tự tin</option>
+                        <option value="🤔 Phân vân">🤔 Phân vân</option>
+                        <option value="😨 FOMO">😨 FOMO</option>
+                        <option value="😡 Trả thù">😡 Trả thù</option>
+                        <option value="😭 Hoảng loạn">😭 Hoảng loạn</option>
+                        <option value="😴 Mệt mỏi">😴 Mệt mỏi</option>
+                        <option value="🤩 Hưng phấn">🤩 Hưng phấn</option>
+                    </select>
+                </div>
+                <textarea id="edit-reason" rows="2" placeholder="Lý do"
+                    class="w-full p-2 border rounded input-style text-sm"></textarea>
+                <input type="url" id="edit-image-url" placeholder="Dán link ảnh chart setup"
+                    class="w-full p-2 border rounded input-style text-sm">
+                <div class="flex gap-2">
+                    <button type="button" id="close-edit-modal-btn"
+                        class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded dark:text-white">Hủy</button>
+                    <button type="submit" class="flex-1 py-2 bg-blue-600 text-white rounded">Cập Nhật</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detail-trade-modal" class="fixed inset-0 bg-gray-900/75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md p-6 relative">
+            <button id="close-detail-modal-btn"
+                class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">&times;</button>
+            <h2 class="text-xl font-bold mb-4 dark:text-white border-b dark:border-gray-700 pb-2">Chi Tiết Lệnh</h2>
+            <div id="detail-trade-content" class="text-sm dark:text-gray-300 space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript Module -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, updateDoc, addDoc, query, orderBy, onSnapshot, deleteDoc, serverTimestamp, getDocs, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // 1. GLOBAL VARIABLES & STATE
+        // ==========================================
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId = null;
+        let isAuthReady = false;
+
+        let globalSettingsDocData = null;
+        let accountsList = [{ id: 'default', name: 'Tài khoản chính' }];
+        let currentAccountId = localStorage.getItem('currentAccountId') || 'default';
+
+        let allGlobalTrades = [], allGlobalFunds = [], allGlobalNotes = [];
+        let trades = [], funds = [], dailyNotes = [];
+        let settings = { maxDailyTrades: 5, maxDailyLosses: 2, assets: ['XAUUSD', 'BTCUSD', 'EURUSD'], disciplineMessage: 'Hãy đảm bảo bạn đã **PHÂN TÍCH**...' };
+
+        let itemToDeleteId = null, itemToDeleteType = null;
+        let currentCalendarDate = new Date();
+        let equityChartInstance = null, pieChartInstance = null;
+
+        // ==========================================
+        // 2. UTILITY FUNCTIONS
+        // ==========================================
+        window.formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount);
+        window.getTodayDateString = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+        window.getCurrentTimeString = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+        window.formatDisciplineMessage = (m) => m.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        window.escapeCSV = (str) => str === null || str === undefined ? '' : '"' + String(str).replace(/"/g, '""') + '"';
+
+        window.setText = (id, txt, cls = null) => { const el = document.getElementById(id); if (el) { el.textContent = txt; if (cls) el.className = cls; } };
+        window.setHtml = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+        window.alertModal = (msg, type = 'info') => {
+            let container = document.getElementById('custom-alerts');
+            if (!container) { container = document.createElement('div'); container.id = 'custom-alerts'; container.className = 'fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none'; document.body.appendChild(container); }
+            const el = document.createElement('div');
+            const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
+            el.className = `${colors[type]} text-white px-4 py-3 rounded shadow-lg transition-opacity duration-300 pointer-events-auto text-sm font-medium`;
+            el.textContent = msg;
+            container.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
+        };
+
+        // ==========================================
+        // 3. CORE LOGIC & RENDERERS
+        // ==========================================
+
+        window.filterDataForCurrentAccount = () => {
+            trades = allGlobalTrades.filter(t => (t.accountId || 'default') === currentAccountId);
+            funds = allGlobalFunds.filter(f => (f.accountId || 'default') === currentAccountId);
+            dailyNotes = allGlobalNotes.filter(n => (n.accountId || 'default') === currentAccountId);
+
+            if (globalSettingsDocData) {
+                const accSettings = globalSettingsDocData[`settings_${currentAccountId}`];
+                if (accSettings) { settings = { ...settings, ...accSettings }; }
+                else { settings = { maxDailyTrades: 5, maxDailyLosses: 2, assets: ['XAUUSD', 'BTCUSD', 'EURUSD'], disciplineMessage: 'Kỷ luật là sức mạnh!' }; }
+            }
+
+            window.updateSettingsUI();
+            window.updateAssetSelects();
+            window.updateMetricsAndCharts();
+            window.renderTradeTable();
+            window.renderCalendar();
+            window.renderFundTable();
+            window.loadDailyNote();
+
+            // Set balance in calculator
+            const bal = document.getElementById('current-balance')?.textContent.replace(/[^0-9.-]+/g, "");
+            if (document.getElementById('calc-balance')) document.getElementById('calc-balance').value = parseFloat(bal) || 0;
+        };
+
+        window.checkDailyLimits = () => {
+            const today = window.getTodayDateString();
+            const tTrades = trades.filter(t => t.openDate === today).length;
+            const tLosses = trades.filter(t => t.openDate === today && t.state === 'Closed' && t.result === 'SL').length;
+
+            window.setText('today-trades', `${tTrades}/${settings.maxDailyTrades}`);
+
+            const isLimit = tTrades >= settings.maxDailyTrades || tLosses >= settings.maxDailyLosses;
+            const limitMsg = document.getElementById('limit-message');
+            const chkContainer = document.getElementById('checklist-container');
+            const submitBtn = document.getElementById('submit-trade-btn');
+
+            if (limitMsg) limitMsg.classList.toggle('hidden', !isLimit);
+            if (chkContainer) chkContainer.classList.toggle('hidden', isLimit);
+            if (isLimit && submitBtn) submitBtn.disabled = true;
+            else window.validateChecklist();
+        };
+
+        window.updateFundMetrics = (totalPnL) => {
+            let dep = 0, wit = 0;
+            funds.forEach(f => { if (f.type === 'Deposit') dep += f.amount; else wit += f.amount; });
+            const net = dep - wit;
+
+            window.setText('net-deposit', window.formatCurrency(net));
+            window.setText('current-balance', window.formatCurrency(net + totalPnL));
+
+            let roi = net > 0 ? (totalPnL / net) * 100 : 0;
+            window.setText('return-percentage', `${roi.toFixed(2)}%`, `text-sm font-medium px-2 py-0.5 rounded ${roi >= 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`);
+
+            if (document.getElementById('calc-balance')) document.getElementById('calc-balance').value = net + totalPnL;
+        };
+
+        window.updateMetricsAndCharts = () => {
+            const closed = trades.filter(t => t.state === 'Closed');
+            let grossProfit = 0, grossLoss = 0, winCount = 0, lossCount = 0, totalPnL = 0;
+            let streak = 0;
+
+            // Calc standard
+            closed.forEach(t => {
+                totalPnL += t.pnl;
+                if (t.pnl > 0) { grossProfit += t.pnl; winCount++; }
+                else if (t.pnl < 0) { grossLoss += Math.abs(t.pnl); lossCount++; }
+            });
+
+            // Calc streak (closed array is sorted newest first)
+            for (let i = 0; i < closed.length; i++) {
+                if (closed[i].result === 'TP') streak++;
+                else if (closed[i].result === 'SL') break;
+            }
+
+            const winRateRatio = closed.length > 0 ? (winCount / closed.length) : 0;
+            const winRate = winRateRatio * 100;
+
+            // Advanced Metrics
+            const pf = grossLoss === 0 ? (grossProfit > 0 ? '∞' : '0.00') : (grossProfit / grossLoss).toFixed(2);
+            const avgWin = winCount > 0 ? (grossProfit / winCount) : 0;
+            const avgLoss = lossCount > 0 ? (grossLoss / lossCount) : 0;
+            const lossRateRatio = closed.length > 0 ? (lossCount / closed.length) : 0;
+            const expectancy = (winRateRatio * avgWin) - (lossRateRatio * avgLoss);
+
+            // Rank
+            let rank = "Tân Binh";
+            if (closed.length >= 100 && winRate >= 60) rank = "Master 👑";
+            else if (closed.length >= 50 && winRate >= 50) rank = "Pro Trader ⚔️";
+            else if (closed.length >= 20) rank = "Thợ Săn 🏹";
+
+            // Update UI
+            window.setText('user-rank', rank);
+            window.setText('win-rate', `${winRate.toFixed(1)}%`);
+            window.setText('total-trades', trades.length.toString());
+            window.setText('win-streak', `${streak} W`);
+            window.setText('total-pnl', window.formatCurrency(totalPnL), `text-xl font-bold ${totalPnL >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`);
+
+            window.setText('profit-factor', pf);
+            window.setText('avg-win', window.formatCurrency(avgWin));
+            window.setText('avg-loss', window.formatCurrency(avgLoss));
+            window.setText('expectancy', window.formatCurrency(expectancy), `text-base font-bold ${expectancy >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-500'}`);
+
+            window.checkDailyLimits();
+            window.updateFundMetrics(totalPnL);
+            window.drawCharts(closed);
+            window.renderTagAnalytics(closed);
+        };
+
+        window.drawCharts = (closedTrades) => {
+            const canvasEq = document.getElementById('equityChart');
+            if (!canvasEq) return;
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#cbd5e1' : '#475569';
+            const gridColor = isDark ? '#334155' : '#e2e8f0';
+
+            const chronoTrades = [...closedTrades].reverse();
+            let equity = 0, peak = 0, maxDd = 0;
+            const labels = [], dataPts = [];
+
+            chronoTrades.forEach((t, i) => {
+                equity += t.pnl; labels.push(`#${i + 1}`); dataPts.push(equity);
+                if (equity > peak) peak = equity;
+                let dd = peak - equity;
+                if (dd > maxDd) maxDd = dd;
+            });
+            window.setText('max-drawdown', `-$${maxDd.toFixed(2)}`);
+
+            if (equityChartInstance) equityChartInstance.destroy();
+            equityChartInstance = new Chart(canvasEq.getContext('2d'), {
+                type: 'line', data: { labels: labels, datasets: [{ label: 'PNL ($)', data: dataPts, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } } }
+            });
+
+            // Delay pie chart slightly if it's on a different tab/hidden element
+            setTimeout(() => {
+                const canvasPie = document.getElementById('assetPieChart');
+                if (!canvasPie) return;
+                const assetCounts = {}; trades.forEach(t => { assetCounts[t.asset] = (assetCounts[t.asset] || 0) + 1; });
+                if (pieChartInstance) pieChartInstance.destroy();
+                pieChartInstance = new Chart(canvasPie.getContext('2d'), {
+                    type: 'doughnut', data: { labels: Object.keys(assetCounts), datasets: [{ data: Object.values(assetCounts), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'], borderWidth: isDark ? 0 : 2 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: textColor, boxWidth: 12 } } } }
+                });
+            }, 100);
+        };
+
+        window.renderTagAnalytics = (closedTrades) => {
+            const setupBox = document.getElementById('setup-stats-container');
+            const emotionBox = document.getElementById('emotion-stats-container');
+            if (!setupBox || !emotionBox) return;
+
+            const sStats = {}, eStats = {};
+            closedTrades.forEach(t => {
+                if (t.setup) { if (!sStats[t.setup]) sStats[t.setup] = 0; sStats[t.setup] += t.pnl; }
+                if (t.emotion) { if (!eStats[t.emotion]) eStats[t.emotion] = 0; eStats[t.emotion] += t.pnl; }
+            });
+
+            const renderStats = (box, dataDict) => {
+                const arr = Object.keys(dataDict).map(k => ({ name: k, pnl: dataDict[k] })).sort((a, b) => b.pnl - a.pnl).slice(0, 3);
+                box.innerHTML = '';
+                if (arr.length === 0) { box.innerHTML = '<p class="text-gray-500 text-xs">Chưa có dữ liệu</p>'; return; }
+                arr.forEach(item => {
+                    const c = item.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                    box.innerHTML += `<div class="flex justify-between items-center border-b dark:border-gray-700 pb-1 last:border-0"><span class="truncate pr-2">${item.name}</span><span class="font-bold ${c}">${window.formatCurrency(item.pnl)}</span></div>`;
+                });
+            };
+
+            renderStats(setupBox, sStats);
+            renderStats(emotionBox, eStats);
+        };
+
+        window.renderTradeTable = () => {
+            const fDate = document.getElementById('filter-date')?.value;
+            const fAsset = document.getElementById('filter-asset')?.value;
+            const fState = document.getElementById('filter-state')?.value;
+            const fRes = document.getElementById('filter-result')?.value;
+            const tbody = document.getElementById('trade-table-body');
+            const noMsg = document.getElementById('no-trades-message');
+            if (!tbody) return;
+
+            const filtered = trades.filter(t => {
+                return (!fDate || t.openDate === fDate) && (!fAsset || t.asset === fAsset) && (!fState || t.state === fState) && (!fRes || (t.state === 'Closed' && t.result === fRes));
+            });
+
+            tbody.innerHTML = '';
+            if (filtered.length === 0) { if (noMsg) noMsg.classList.remove('hidden'); return; }
+            if (noMsg) noMsg.classList.add('hidden');
+
+            filtered.forEach(t => {
+                const tr = document.createElement('tr');
+                let rowCls = 'border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50';
+                if (t.state === 'Closed' && t.result === 'SL') rowCls = 'bg-red-100 hover:bg-red-200 border-l-4 border-l-red-600 border-b border-gray-300';
+                tr.className = rowCls;
+
+                const pColor = t.pnl > 0 ? 'text-green-600 dark:text-green-400' : (t.pnl < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500');
+                const pnlDisp = t.state === 'Closed' ? window.formatCurrency(t.pnl) : 'N/A';
+
+                let rCls = '', rTxt = t.result;
+                if (t.state === 'Closed') {
+                    if (t.result === 'TP') rCls = 'bg-green-100 text-green-800';
+                    else if (t.result === 'SL') rCls = 'bg-red-100 text-red-800';
+                    else if (t.result === 'BE') rCls = 'bg-yellow-100 text-yellow-800';
+                    else { rCls = 'bg-gray-100 text-gray-800'; rTxt = 'N/A'; }
+                } else { rCls = 'bg-gray-100 text-gray-500'; rTxt = 'N/A'; }
+
+                const sCls = t.state === 'Open' ? 'bg-blue-100 text-blue-800' : 'bg-gray-600 text-white';
+                const imgStr = t.imageUrl ? `<a href="${t.imageUrl}" target="_blank" class="text-blue-500 hover:underline">Link</a>` : '-';
+
+                tr.innerHTML = `
+                    <td class="px-3 py-3 text-sm">${t.openDate} <br><span class="text-xs text-gray-500">${t.openTime} ${t.closeTime ? '- ' + t.closeTime : ''}</span></td>
+                    <td class="px-3 py-3 font-bold text-sm">${t.asset}</td>
+                    <td class="px-3 py-3 text-center"><span class="px-2 py-0.5 text-xs rounded-full ${sCls}">${t.state}</span></td>
+                    <td class="px-3 py-3 text-center text-sm">${imgStr}</td>
+                    <td class="px-3 py-3 text-right font-bold text-sm ${pColor}">${pnlDisp}</td>
+                    <td class="px-3 py-3 text-center"><span class="px-2 py-0.5 text-xs rounded-full ${rCls}">${rTxt}</span></td>
+                    <td class="px-3 py-3 text-xs hidden md:table-cell text-gray-500">${t.setup || '-'} <br><i>${t.emotion || '-'}</i></td>
+                    <td class="px-3 py-3 text-right text-sm">
+                        <button onclick="window.viewTrade('${t.id}')" class="text-blue-500 hover:underline mr-2">Sửa</button>
+                        <button onclick="window.delTrade('${t.id}')" class="text-red-500 hover:underline">Xóa</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        };
+
+        window.renderCalendar = () => {
+            const cal = document.getElementById('calendar-view');
+            if (!cal) return;
+            cal.innerHTML = '';
+            const y = currentCalendarDate.getFullYear(), m = currentCalendarDate.getMonth();
+            window.setText('current-month-display', `${m + 1}/${y}`);
+
+            const firstDay = new Date(y, m, 1).getDay();
+            const days = new Date(y, m + 1, 0).getDate();
+            const sum = trades.reduce((acc, t) => {
+                const [ty, tm, td] = t.openDate.split('-').map(Number);
+                if (tm === m + 1 && ty === y && t.state === 'Closed') {
+                    if (!acc[t.openDate]) acc[t.openDate] = { pnl: 0, cnt: 0 };
+                    acc[t.openDate].pnl += t.pnl; acc[t.openDate].cnt++;
+                }
+                return acc;
+            }, {});
+
+            for (let i = 0; i < firstDay; i++) cal.appendChild(Object.assign(document.createElement('div'), { className: 'day-cell border-transparent bg-transparent cursor-default' }));
+            for (let i = 1; i <= days; i++) {
+                const dStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const summary = sum[dStr];
+                const cell = document.createElement('div');
+                let cl = 'day-cell space-y-1 transition-colors ';
+                if (summary) {
+                    if (summary.pnl > 0) cl += 'bg-green-100 border-green-300 text-green-800';
+                    else if (summary.pnl < 0) cl += 'bg-red-100 border-red-300 text-red-800';
+                    else cl += 'bg-gray-100';
+                } else { cl += 'bg-white text-gray-400 dark:bg-gray-800 dark:text-gray-500'; }
+                cell.className = cl;
+                cell.innerHTML = `<div class="font-bold text-sm">${i}</div>${summary ? `<div class="text-xs font-bold mt-1">${window.formatCurrency(summary.pnl)}</div><div class="text-[10px] opacity-75">${summary.cnt} lệnh</div>` : ''}`;
+                cell.onclick = () => { document.getElementById('filter-date').value = dStr; window.renderTradeTable(); window.alertModal(`Lọc: ${dStr}`, 'info'); };
+                cal.appendChild(cell);
+            }
+        };
+
+        window.renderFundTable = () => {
+            const tbody = document.getElementById('fund-table-body');
+            const noMsg = document.getElementById('no-fund-message');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (funds.length === 0) { if (noMsg) noMsg.classList.remove('hidden'); return; }
+            if (noMsg) noMsg.classList.add('hidden');
+            funds.forEach(f => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b dark:border-gray-700';
+                tr.innerHTML = `<td class="px-4 py-2">${f.date}</td><td class="px-4 py-2">${f.type === 'Deposit' ? 'Nạp' : 'Rút'}</td><td class="px-4 py-2 text-right ${f.type === 'Deposit' ? 'text-green-500' : 'text-red-500'}">${window.formatCurrency(f.amount)}</td><td class="px-4 py-2 text-right"><button onclick="window.delFund('${f.id}')" class="text-red-500 hover:underline">Xóa</button></td>`;
+                tbody.appendChild(tr);
+            });
+        };
+
+        window.renderAccountSwitcher = () => {
+            const switcher = document.getElementById('account-switcher');
+            if (!switcher) return;
+            switcher.innerHTML = '';
+            accountsList.forEach(acc => { switcher.innerHTML += `<option value="${acc.id}">${acc.name}</option>`; });
+            if (accountsList.find(a => a.id === currentAccountId)) { switcher.value = currentAccountId; }
+            else { currentAccountId = accountsList[0].id; switcher.value = currentAccountId; localStorage.setItem('currentAccountId', currentAccountId); }
+        };
+
+        // ==========================================
+        // 4. FORM AND INTERACTION HANDLERS
+        // ==========================================
+        window.validateChecklist = () => {
+            const btn = document.getElementById('submit-trade-btn');
+            const limitMsg = document.getElementById('limit-message');
+            if (limitMsg && !limitMsg.classList.contains('hidden')) return;
+            let allChecked = true;
+            document.querySelectorAll('.trade-checklist').forEach(cb => { if (!cb.checked) allChecked = false; });
+            if (btn) { btn.disabled = !allChecked; btn.textContent = allChecked ? "Thêm Lệnh Trade" : "Hoàn thành Checklist để mở khóa"; }
+        };
+
+        window.updateTradeFormFields = (isEdit = false) => {
+            const st = document.getElementById(isEdit ? 'edit-state' : 'trade-state')?.value;
+            const container = document.getElementById(isEdit ? 'edit-closed-fields' : 'main-closed-fields');
+            const tm = document.getElementById(isEdit ? 'edit-close-time' : 'close-time');
+            if (!container) return;
+            if (st === 'Closed') { container.classList.remove('hidden'); if (!isEdit && tm && !tm.value) tm.value = window.getCurrentTimeString(); }
+            else { container.classList.add('hidden'); }
+        };
+
+        window.resetForm = () => {
+            const form = document.getElementById('trade-form');
+            if (form) form.reset();
+            const d = document.getElementById('trade-date'); if (d) d.value = window.getTodayDateString();
+            const t = document.getElementById('open-time'); if (t) t.value = window.getCurrentTimeString();
+            const s = document.getElementById('trade-state'); if (s) s.value = 'Open';
+            document.querySelectorAll('.trade-checklist').forEach(cb => cb.checked = false);
+            window.updateTradeFormFields(false);
+            window.validateChecklist();
+        };
+
+        window.updateSettingsUI = () => {
+            const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+            setVal('max-trades', settings.maxDailyTrades);
+            setVal('max-losses', settings.maxDailyLosses);
+            setVal('asset-list', settings.assets.join(', '));
+            setVal('discipline-message-input', settings.disciplineMessage);
+            window.setHtml('discipline-reminder-text', window.formatDisciplineMessage(settings.disciplineMessage));
+        };
+
+        window.updateAssetSelects = () => {
+            const tAsset = document.getElementById('trade-asset');
+            const eAsset = document.getElementById('edit-asset');
+            const fAsset = document.getElementById('filter-asset');
+            if (!tAsset || !eAsset || !fAsset) return;
+            const currentF = fAsset.value;
+            tAsset.innerHTML = ''; eAsset.innerHTML = ''; fAsset.innerHTML = '<option value="">Tất Cả Mã</option>';
+            settings.assets.forEach(a => {
+                tAsset.innerHTML += `<option value="${a}">${a}</option>`;
+                eAsset.innerHTML += `<option value="${a}">${a}</option>`;
+                fAsset.innerHTML += `<option value="${a}">${a}</option>`;
+            });
+            if (settings.assets.includes(currentF)) fAsset.value = currentF;
+        };
+
+        // --- CALC LOGIC ---
+        window.calculateLotSize = () => {
+            const bal = parseFloat(document.getElementById('calc-balance').value) || 0;
+            const riskPct = parseFloat(document.getElementById('calc-risk-pct').value) || 0;
+            const sl = parseFloat(document.getElementById('calc-sl').value) || 0;
+            const pipVal = parseFloat(document.getElementById('calc-pip-val').value) || 0;
+
+            const riskUsd = bal * (riskPct / 100);
+            window.setText('calc-risk-usd', `$${riskUsd.toFixed(2)}`);
+
+            let lots = 0;
+            if (sl > 0 && pipVal > 0) {
+                lots = riskUsd / (sl * pipVal);
+            }
+            window.setText('calc-result', lots.toFixed(2));
+        };
+
+        // --- DAILY NOTE LOGIC ---
+        window.loadDailyNote = () => {
+            const dateInput = document.getElementById('daily-note-date');
+            if (!dateInput) return;
+            if (!dateInput.value) dateInput.value = window.getTodayDateString();
+
+            const selectedDate = dateInput.value;
+            const noteObj = dailyNotes.find(n => n.date === selectedDate);
+            document.getElementById('daily-note-content').value = noteObj ? noteObj.content : '';
+        };
+
+        window.handleSaveNote = async () => {
+            const date = document.getElementById('daily-note-date').value;
+            const content = document.getElementById('daily-note-content').value;
+            if (!date) return;
+
+            const existingNote = dailyNotes.find(n => n.date === date);
+            try {
+                if (existingNote) {
+                    await updateDoc(doc(db, `artifacts/${appId}/users/${userId}/notes`, existingNote.id), { content: content, timestamp: serverTimestamp() });
+                } else {
+                    await addDoc(collection(db, `artifacts/${appId}/users/${userId}/notes`), { accountId: currentAccountId, date: date, content: content, timestamp: serverTimestamp() });
+                }
+                window.alertModal("Đã lưu ghi chú!", "success");
+            } catch (e) { window.alertModal("Lỗi lưu ghi chú", "error"); }
+        };
+
+        // --- ACTION HANDLERS ---
+        window.handleAccountChange = () => {
+            const val = document.getElementById('account-switcher').value;
+            currentAccountId = val;
+            localStorage.setItem('currentAccountId', val);
+            window.filterDataForCurrentAccount();
+            window.alertModal(`Đã đổi sang: ${accountsList.find(a => a.id === val)?.name}`, 'info');
+        };
+
+        window.handleCreateAccount = async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-account-name').value.trim();
+            if (!name) return;
+            const newId = 'acc_' + Date.now().toString();
+            accountsList.push({ id: newId, name: name });
+
+            if (!globalSettingsDocData) globalSettingsDocData = {};
+            globalSettingsDocData.accounts = accountsList;
+            globalSettingsDocData[`settings_${newId}`] = { maxDailyTrades: 5, maxDailyLosses: 2, assets: ['XAUUSD', 'BTCUSD', 'EURUSD'], disciplineMessage: 'Kỷ luật là sức mạnh!' };
+
+            try {
+                await setDoc(doc(db, `artifacts/${appId}/users/${userId}/settings/data`), globalSettingsDocData, { merge: true });
+                document.getElementById('new-account-name').value = '';
+                document.getElementById('account-modal').classList.add('hidden');
+                document.getElementById('account-switcher').value = newId;
+                window.handleAccountChange();
+            } catch (err) { window.alertModal("Lỗi tạo tài khoản.", "error"); }
+        };
+
+        window.handleAddTrade = async (e) => {
+            e.preventDefault();
+            if (document.getElementById('submit-trade-btn').disabled) return;
+            const isC = document.getElementById('trade-state').value === 'Closed';
+            const data = {
+                accountId: currentAccountId,
+                openDate: document.getElementById('trade-date').value, openTime: document.getElementById('open-time').value,
+                closeTime: isC ? document.getElementById('close-time').value : null, asset: document.getElementById('trade-asset').value,
+                state: document.getElementById('trade-state').value, pnl: isC ? parseFloat(document.getElementById('trade-pnl').value || 0) : 0,
+                result: isC ? document.getElementById('trade-result').value : 'N/A', reason: document.getElementById('trade-reason').value,
+                setup: document.getElementById('trade-setup').value, emotion: document.getElementById('trade-emotion').value,
+                imageUrl: document.getElementById('image-url').value, timestamp: serverTimestamp()
+            };
+            try { await addDoc(collection(db, `artifacts/${appId}/users/${userId}/trades`), data); window.alertModal("Lưu thành công!", "success"); window.resetForm(); }
+            catch (err) { window.alertModal("Lỗi lưu.", "error"); }
+        };
+
+        window.handleSaveUpdateTrade = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-trade-id').value;
+            const isC = document.getElementById('edit-state').value === 'Closed';
+            const data = {
+                openDate: document.getElementById('edit-open-date').value, openTime: document.getElementById('edit-open-time').value,
+                closeTime: isC ? document.getElementById('edit-close-time').value : null, asset: document.getElementById('edit-asset').value,
+                state: document.getElementById('edit-state').value, pnl: isC ? parseFloat(document.getElementById('edit-pnl').value || 0) : 0,
+                result: isC ? document.getElementById('edit-result').value : 'N/A', reason: document.getElementById('edit-reason').value,
+                setup: document.getElementById('edit-setup').value, emotion: document.getElementById('edit-emotion').value,
+                imageUrl: document.getElementById('edit-image-url').value
+            };
+            try { await updateDoc(doc(db, `artifacts/${appId}/users/${userId}/trades`, id), data); window.alertModal("Sửa thành công!", "success"); document.getElementById('edit-trade-modal').classList.add('hidden'); }
+            catch (err) { window.alertModal("Lỗi cập nhật.", "error"); }
+        };
+
+        window.handleAddFund = async (e) => {
+            e.preventDefault();
+            try { await addDoc(collection(db, `artifacts/${appId}/users/${userId}/funds`), { accountId: currentAccountId, type: document.getElementById('fund-type').value, amount: parseFloat(document.getElementById('fund-amount').value), date: document.getElementById('fund-date').value, timestamp: serverTimestamp() }); document.getElementById('fund-form').reset(); window.alertModal("Lưu quỹ thành công.", "success"); }
+            catch (err) { window.alertModal("Lỗi lưu quỹ.", "error"); }
+        };
+
+        window.handleSaveSettings = async (e) => {
+            e.preventDefault();
+            if (!globalSettingsDocData) globalSettingsDocData = {};
+            globalSettingsDocData[`settings_${currentAccountId}`] = {
+                maxDailyTrades: parseInt(document.getElementById('max-trades').value), maxDailyLosses: parseInt(document.getElementById('max-losses').value),
+                assets: document.getElementById('asset-list').value.split(',').map(s => s.trim().toUpperCase()).filter(s => s), disciplineMessage: document.getElementById('discipline-message-input').value
+            };
+            try { await setDoc(doc(db, `artifacts/${appId}/users/${userId}/settings/data`), globalSettingsDocData, { merge: true }); window.alertModal("Lưu cài đặt!", "success"); document.getElementById('settings-modal').classList.add('hidden'); }
+            catch (err) { window.alertModal("Lỗi lưu cài đặt.", "error"); }
+        };
+
+        window.executeDelete = async () => {
+            if (!itemToDeleteId) return;
+            try { await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/${itemToDeleteType}s`, itemToDeleteId)); window.alertModal("Đã xóa", "success"); }
+            catch (e) { window.alertModal("Lỗi xóa", "error"); }
+            finally { document.getElementById('delete-confirm-modal').classList.add('hidden'); }
+        };
+
+        window.executeResetAllData = async () => {
+            try {
+                document.getElementById('reset-confirm-modal').classList.add('hidden');
+
+                const tradesColRef = collection(db, `artifacts/${appId}/users/${userId}/trades`);
+                const tradeDocs = await getDocs(tradesColRef);
+                const tradeDeletePromises = tradeDocs.docs.filter(d => (d.data().accountId || 'default') === currentAccountId).map(d => deleteDoc(d.ref));
+
+                const fundsColRef = collection(db, `artifacts/${appId}/users/${userId}/funds`);
+                const fundDocs = await getDocs(fundsColRef);
+                const fundDeletePromises = fundDocs.docs.filter(d => (d.data().accountId || 'default') === currentAccountId).map(d => deleteDoc(d.ref));
+
+                const notesColRef = collection(db, `artifacts/${appId}/users/${userId}/notes`);
+                const notesDocs = await getDocs(notesColRef);
+                const notesDeletePromises = notesDocs.docs.filter(d => (d.data().accountId || 'default') === currentAccountId).map(d => deleteDoc(d.ref));
+
+                globalSettingsDocData[`settings_${currentAccountId}`] = { maxDailyTrades: 5, maxDailyLosses: 2, assets: ['XAUUSD', 'BTCUSD', 'EURUSD'], disciplineMessage: 'Hãy đảm bảo bạn đã **PHÂN TÍCH**...' };
+                await setDoc(doc(db, `artifacts/${appId}/users/${userId}/settings/data`), globalSettingsDocData, { merge: true });
+
+                await Promise.all([...tradeDeletePromises, ...fundDeletePromises, ...notesDeletePromises]);
+                window.alertModal("Đã reset tài khoản hiện tại.", "success");
+            } catch (error) { window.alertModal("Lỗi khi reset.", "error"); }
+        };
+
+        window.handleExportCSV = () => {
+            if (trades.length === 0) { window.alertModal("Không có dữ liệu để xuất", "warning"); return; }
+            const headers = ['Ngày Mở', 'Giờ Mở', 'Mã GD', 'Trạng Thái', 'Giờ Đóng', 'PnL(USD)', 'Kết Quả', 'Setup', 'Cảm Xúc', 'Lý Do'];
+            const rows = trades.map(t => [
+                t.openDate, t.openTime, t.asset, t.state, t.closeTime || '', t.pnl, t.result || '', t.setup || '', t.emotion || '', window.escapeCSV(t.reason || '')
+            ].join(','));
+            const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(',') + '\n' + rows.join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `TradingJournal_${currentAccountId}_${window.getTodayDateString()}.csv`);
+            document.body.appendChild(link);
+            link.click(); document.body.removeChild(link);
+            window.alertModal("Đã xuất file CSV!", "success");
+        };
+
+        window.handleImportCSV = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const text = ev.target.result;
+                const rows = text.split('\n').filter(r => r.trim().length > 0);
+                if (rows.length <= 1) { window.alertModal("File trống hoặc không hợp lệ", "error"); return; }
+
+                let successCount = 0;
+                // Bỏ qua dòng header
+                for (let i = 1; i < rows.length; i++) {
+                    // Simple split (Might break if commas are inside quotes and not handled by basic split, but sufficient for basic exported format)
+                    // For robust parsing, standard split logic:
+                    const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+                    if (cols.length >= 6) {
+                        const cleanStr = (s) => s ? s.replace(/^"|"$/g, '').replace(/""/g, '"') : '';
+                        const data = {
+                            accountId: currentAccountId,
+                            openDate: cleanStr(cols[0]), openTime: cleanStr(cols[1]), asset: cleanStr(cols[2]), state: cleanStr(cols[3]),
+                            closeTime: cleanStr(cols[4]) || null, pnl: parseFloat(cleanStr(cols[5])) || 0, result: cleanStr(cols[6]) || 'N/A',
+                            setup: cleanStr(cols[7]) || '', emotion: cleanStr(cols[8]) || '', reason: cleanStr(cols[9]) || '',
+                            timestamp: serverTimestamp()
+                        };
+                        try { await addDoc(collection(db, `artifacts/${appId}/users/${userId}/trades`), data); successCount++; } catch (e) { }
+                    }
+                }
+                window.alertModal(`Nhập thành công ${successCount} lệnh!`, "success");
+                e.target.value = ''; // reset input
+            };
+            reader.readAsText(file);
+        };
+
+        // Modal Triggers exposed to window
+        window.viewTrade = (id) => {
+            const t = trades.find(x => x.id === id); if (!t) return;
+            document.getElementById('edit-trade-id').value = t.id;
+            document.getElementById('edit-open-date').value = t.openDate; document.getElementById('edit-open-time').value = t.openTime;
+            document.getElementById('edit-asset').value = t.asset; document.getElementById('edit-state').value = t.state;
+            document.getElementById('edit-close-time').value = t.closeTime || ''; document.getElementById('edit-pnl').value = t.pnl || '';
+            document.getElementById('edit-result').value = t.result || ''; document.getElementById('edit-reason').value = t.reason || '';
+            document.getElementById('edit-setup').value = t.setup || ''; document.getElementById('edit-emotion').value = t.emotion || '';
+            document.getElementById('edit-image-url').value = t.imageUrl || '';
+            window.updateTradeFormFields(true); document.getElementById('edit-trade-modal').classList.remove('hidden');
+        };
+
+        window.handleDetailView = (tradeId) => {
+            const trade = trades.find(t => t.id === tradeId);
+            if (!trade) return;
+            const pnlClass = trade.pnl > 0 ? 'text-green-600' : 'text-red-600';
+            window.setHtml('detail-trade-content', `<div class="grid grid-cols-2 gap-4 pb-2 border-b"><div><strong>Mã:</strong> ${trade.asset}</div><div><strong>Trạng Thái:</strong> ${trade.state}</div></div><div class="py-2"><strong>PnL:</strong> <span class="${pnlClass}">${window.formatCurrency(trade.pnl)}</span></div><div class="py-2 bg-gray-50 dark:bg-gray-900 p-2 rounded">${trade.reason}</div><div class="text-right pt-2"><button onclick="window.viewTrade('${trade.id}'); window.closeDetailModal();" class="text-blue-600 font-bold">Sửa</button></div>`);
+            document.getElementById('detail-trade-modal').classList.remove('hidden');
+        };
+
+        window.delTrade = (id) => { itemToDeleteId = id; itemToDeleteType = 'trade'; document.getElementById('delete-confirm-modal').classList.remove('hidden'); };
+        window.delFund = (id) => { itemToDeleteId = id; itemToDeleteType = 'fund'; document.getElementById('delete-confirm-modal').classList.remove('hidden'); };
+        window.changeMonth = (offset) => { currentCalendarDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + offset, 1); window.renderCalendar(); };
+        window.handleClearFilters = () => { document.getElementById('filter-date').value = ''; document.getElementById('filter-asset').value = ''; document.getElementById('filter-state').value = ''; document.getElementById('filter-result').value = ''; window.renderTradeTable(); window.alertModal("Đã xóa lọc", "info"); };
+        window.toggleTheme = () => { const d = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', d ? 'dark' : 'light'); document.getElementById('moon-icon').classList.toggle('hidden', d); document.getElementById('sun-icon').classList.toggle('hidden', !d); if (equityChartInstance) window.drawCharts(trades.filter(x => x.state === 'Closed')); };
+        window.closeDetailModal = () => document.getElementById('detail-trade-modal').classList.add('hidden');
+        window.openCalcModal = () => { document.getElementById('calc-modal').classList.remove('hidden'); window.calculateLotSize(); };
+
+        // ==========================================
+        // 5. FIREBASE SETUP & INITIALIZATION
+        // ==========================================
+        function setupDataListeners() {
+            onSnapshot(doc(db, `artifacts/${appId}/users/${userId}/settings/data`), snap => {
+                if (snap.exists()) {
+                    globalSettingsDocData = snap.data();
+                    accountsList = globalSettingsDocData.accounts || [{ id: 'default', name: 'Tài khoản chính' }];
+                } else {
+                    globalSettingsDocData = { accounts: accountsList, settings_default: settings };
+                    setDoc(doc(db, `artifacts/${appId}/users/${userId}/settings/data`), globalSettingsDocData);
+                }
+                window.renderAccountSwitcher();
+                window.filterDataForCurrentAccount();
+            });
+
+            onSnapshot(query(collection(db, `artifacts/${appId}/users/${userId}/trades`), orderBy("openDate", "desc")), snap => {
+                allGlobalTrades = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                window.filterDataForCurrentAccount();
+            });
+
+            onSnapshot(query(collection(db, `artifacts/${appId}/users/${userId}/funds`), orderBy("date", "desc")), snap => {
+                allGlobalFunds = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                window.filterDataForCurrentAccount();
+            });
+
+            onSnapshot(query(collection(db, `artifacts/${appId}/users/${userId}/notes`)), snap => {
+                allGlobalNotes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                window.filterDataForCurrentAccount();
+            });
+        }
+
+        function setupDOMEvents() {
+            document.getElementById('theme-toggle').onclick = window.toggleTheme;
+            document.getElementById('trade-form').onsubmit = window.handleAddTrade;
+            document.getElementById('edit-trade-form').onsubmit = window.handleSaveUpdateTrade;
+            document.getElementById('fund-form').onsubmit = window.handleAddFund;
+            document.getElementById('settings-form').onsubmit = window.handleSaveSettings;
+            document.getElementById('account-form').onsubmit = window.handleCreateAccount;
+
+            document.getElementById('account-switcher').onchange = window.handleAccountChange;
+            document.getElementById('trade-state').onchange = () => window.updateTradeFormFields(false);
+            document.getElementById('edit-state').onchange = () => window.updateTradeFormFields(true);
+            document.querySelectorAll('.trade-checklist').forEach(cb => cb.onchange = window.validateChecklist);
+            document.querySelectorAll('#filter-controls input, #filter-controls select').forEach(el => el.onchange = window.renderTradeTable);
+
+            document.getElementById('clear-filters-btn').onclick = window.handleClearFilters;
+            document.getElementById('prev-month-btn').onclick = () => window.changeMonth(-1);
+            document.getElementById('next-month-btn').onclick = () => window.changeMonth(1);
+
+            document.getElementById('export-csv-btn').onclick = window.handleExportCSV;
+            document.getElementById('import-csv-file').onchange = window.handleImportCSV;
+
+            document.getElementById('save-note-btn').onclick = window.handleSaveNote;
+            document.getElementById('daily-note-date').onchange = window.loadDailyNote;
+
+            // Calculator events
+            document.getElementById('open-calc-btn').onclick = window.openCalcModal;
+            document.getElementById('close-calc-btn').onclick = () => document.getElementById('calc-modal').classList.add('hidden');
+            ['calc-risk-pct', 'calc-sl', 'calc-pip-val'].forEach(id => document.getElementById(id).oninput = window.calculateLotSize);
+
+            const m = (b, mod, sh) => { const el = document.getElementById(b); if (el) el.onclick = () => document.getElementById(mod).classList[sh ? 'remove' : 'add']('hidden'); };
+            m('open-settings-btn', 'settings-modal', true); m('close-settings-btn', 'settings-modal', false);
+            m('open-fund-modal-btn', 'fund-modal', true); m('close-fund-modal-btn', 'fund-modal', false);
+            m('open-new-account-btn', 'account-modal', true); m('close-account-btn', 'account-modal', false);
+            m('close-edit-modal-btn', 'edit-trade-modal', false);
+            m('cancel-delete-btn', 'delete-confirm-modal', false);
+
+            document.getElementById('open-reset-confirm-btn').onclick = () => { document.getElementById('settings-modal').classList.add('hidden'); document.getElementById('reset-confirm-modal').classList.remove('hidden'); };
+            document.getElementById('cancel-reset-btn').onclick = () => document.getElementById('reset-confirm-modal').classList.add('hidden');
+            document.getElementById('confirm-reset-btn').onclick = window.executeResetAllData;
+            document.getElementById('confirm-delete-btn').onclick = window.executeDelete;
+        }
+
+        function initApp() {
+            if (localStorage.getItem('theme') === 'dark') window.toggleTheme();
+            setupDOMEvents();
+
+            try {
+                if (!Object.keys(firebaseConfig).length) { window.setText('auth-status', "Lỗi cấu hình", "text-red-500 text-sm"); return; }
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app); auth = getAuth(app);
+                (async () => { if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken); else await signInAnonymously(auth); })();
+
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        userId = user.uid;
+                        window.setText('auth-status', `Đã kết nối (${userId.substring(0, 5)}...)`);
+                        document.getElementById('loading-spinner').classList.add('hidden');
+                        document.getElementById('main-content').classList.remove('hidden');
+                        window.resetForm();
+                        setupDataListeners();
+                    } else { userId = null; window.setText('auth-status', "Chưa đăng nhập"); isAuthReady = true; }
+                });
+            } catch (e) { window.setText('auth-status', "Lỗi kết nối Firebase", "text-red-500 text-sm"); }
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+
+</html>
